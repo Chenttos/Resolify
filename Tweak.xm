@@ -1,12 +1,12 @@
 #import <UIKit/UIKit.h>
-#import <objc/runtime.h>
-#import <notify.h>
-#import <unistd.h>
+#import <Foundation/Foundation.h>
 
-static NSString * const RXPrefsPath = @"/var/mobile/Library/Preferences/com.samuel.resolutionx.plist";
+static NSString * const RXDomain = @"com.samuel.resolutionx";
+static NSString * const RXRespringNotification = @"com.samuel.resolutionx/respring";
 
 static NSDictionary *RXPrefs(void) {
-    NSDictionary *d = [NSDictionary dictionaryWithContentsOfFile:RXPrefsPath];
+    NSDictionary *d = [NSDictionary dictionaryWithContentsOfFile:
+        @"/var/mobile/Library/Preferences/com.samuel.resolutionx.plist"];
     return d ?: @{};
 }
 
@@ -19,97 +19,67 @@ static BOOL RXGestureDock(void) {
     return v ? [v boolValue] : YES;
 }
 
-/*
- Presets are logical SpringBoard coordinate spaces.
- The iPhone 8 Plus panel itself remains the same physical panel; this changes
- the coordinate space SpringBoard uses, which is the safer approach than
- trying to reprogram the framebuffer.
-*/
-static CGSize RXSizeForPreset(NSInteger preset) {
-    switch (preset) {
-        case 1: return CGSizeMake(375, 812);  // iPhone X / XS
-        case 2: return CGSizeMake(414, 896);  // iPhone XR / 11
-        case 3: return CGSizeMake(390, 844);  // iPhone 12/13/14
-        case 4: return CGSizeMake(393, 852);  // iPhone 14/15
-        case 5: return CGSizeMake(430, 932);  // iPhone 12/13/14/15 Pro Max
-        case 6: return CGSizeMake(414, 736);  // Native iPhone 8 Plus
-        default: return CGSizeMake(414, 736);
-    }
-}
-
 static BOOL RXEnabled(void) {
     return RXPreset() != 6;
+}
+
+static CGSize RXTargetSize(void) {
+    switch (RXPreset()) {
+        case 1: return CGSizeMake(375, 812);
+        case 2: return CGSizeMake(414, 896);
+        case 3: return CGSizeMake(390, 844);
+        case 4: return CGSizeMake(393, 852);
+        case 5: return CGSizeMake(430, 932);
+        default: return CGSizeMake(414, 736);
+    }
 }
 
 %hook UIScreen
 
 - (CGRect)bounds {
-    CGRect original = %orig;
-
-    if (!RXEnabled())
-        return original;
-
-    // Only alter the main SpringBoard display.
-    if (self == [UIScreen mainScreen]) {
-        CGSize target = RXSizeForPreset(RXPreset());
-
-        // Preserve the current orientation.
-        if (original.size.width > original.size.height)
-            return CGRectMake(0, 0, target.height, target.width);
-
-        return CGRectMake(0, 0, target.width, target.height);
+    CGRect r = %orig;
+    if (self == [UIScreen mainScreen] && RXEnabled()) {
+        CGSize s = RXTargetSize();
+        if (r.size.width > r.size.height)
+            return CGRectMake(0, 0, s.height, s.width);
+        return CGRectMake(0, 0, s.width, s.height);
     }
-
-    return original;
+    return r;
 }
 
 %end
 
-/*
- iOS has a useful quirk: giving UITraitCollection a non-zero display corner
- radius causes SpringBoard to use the modern/floating dock treatment.
- We only do this while the user has selected an X-style preset.
-*/
-%hook UITraitCollection
-
-- (CGFloat)displayCornerRadius {
-    if (RXEnabled() && RXGestureDock())
-        return 6.0;
-
-    return %orig;
-}
-
-%end
-
+// Keep the dock portion conservative: only alter icon count when X-style
+// mode is selected. A later SpringBoard-specific implementation can replace
+// the dock background/geometry without affecting Settings.
 %hook SBDockIconListView
 
 + (NSUInteger)maxIcons {
     if (RXEnabled() && RXGestureDock())
         return 4;
-
     return %orig;
 }
 
 %end
 
-static void RXRestartCallback(CFNotificationCenterRef center,
-                                void *observer,
-                                CFStringRef name,
-                                const void *object,
-                                CFDictionaryRef userInfo) {
-    // SpringBoard exits and launchd immediately starts it again.
-    exit(0);
-}
-
 %ctor {
+    // SpringBoard only.
     if (![[NSBundle mainBundle].bundleIdentifier isEqualToString:@"com.apple.springboard"])
         return;
 
     CFNotificationCenterAddObserver(
         CFNotificationCenterGetDarwinNotifyCenter(),
         NULL,
-        RXRestartCallback,
-        CFSTR("com.samuel.resolutionx.restart"),
+        [](CFNotificationCenterRef center, void *observer, CFStringRef name,
+           const void *object, CFDictionaryRef userInfo) {
+            if (!name) return;
+            NSString *n = (__bridge NSString *)name;
+            if ([n isEqualToString:RXRespringNotification]) {
+                // Preferred on iOS 16: ask SpringBoard to quit cleanly.
+                [[NSClassFromString(@"FBSystemService") performSelector:@selector(sharedInstance)] performSelector:@selector(exitAndRelaunchSpringBoard)];
+            }
+        },
+        (__bridge CFStringRef)RXRespringNotification,
         NULL,
         CFNotificationSuspensionBehaviorDeliverImmediately
     );

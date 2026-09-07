@@ -6,7 +6,7 @@ include $(THEOS)/makefiles/common.mk
 TWEAK_NAME = ResolutionX
 ResolutionX_FILES = Tweak.xm
 ResolutionX_CFLAGS = -fobjc-arc
-ResolutionX_FRAMEWORKS = UIKit CoreGraphics
+ResolutionX_FRAMEWORKS = UIKit
 ResolutionX_PRIVATE_FRAMEWORKS = SpringBoard
 
 include $(THEOS_MAKE_PATH)/tweak.mk

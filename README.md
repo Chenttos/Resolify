@@ -1,25 +1,14 @@
-# ResolutionX
+# ResolutionX 1.0.2
 
-Rootless Theos tweak for iPhone 8 Plus / iOS 16.7.x.
+For iPhone 8 Plus, iOS 16.7.16, rootless Theos.
 
-## Features
+## Important fix
+This version includes the missing PreferenceLoader registration file:
+`/Library/PreferenceLoader/Preferences/ResolutionXPrefs.plist`
 
-- Resolution presets in Settings.
-- iPhone X/XS, XR/11, 12/13/14, 14/15 and Pro Max logical layouts.
-- Native iPhone 8 Plus restore option.
-- Optional iPhone X-style floating dock.
-- Respring button.
+Without that file, the preference bundle can install correctly but never appear in Settings.
 
-## Build
+Build:
+`make clean package`
 
-Install Theos and the iOS 16 SDK, then:
-
-```sh
-make clean package
-```
-
-For a rootless jailbreak, install the generated `.deb` with Sileo/Zebra/Filza.
-
-## Important
-
-This tweak changes SpringBoard's logical coordinate space. It does **not** reprogram the physical LCD framebuffer. Arbitrary framebuffer modes are not exposed as normal iPhone display modes.
+Install the generated deb and respring/reboot SpringBoard.
