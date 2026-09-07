@@ -1,0 +1,11 @@
+{
+    CFBundleDevelopmentRegion = English;
+    CFBundleDisplayName = ResolutionX;
+    CFBundleExecutable = ResolutionXPrefs;
+    CFBundleIdentifier = com.samuel.resolutionxprefs;
+    CFBundleName = ResolutionXPrefs;
+    CFBundlePackageType = BNDL;
+    CFBundleShortVersionString = "1.0";
+    CFBundleVersion = "1.0";
+    NSPrincipalClass = RXRootListController;
+}
