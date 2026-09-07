@@ -1,5 +1,7 @@
 #import <UIKit/UIKit.h>
 #import <objc/runtime.h>
+#import <notify.h>
+#import <unistd.h>
 
 static NSString * const RXPrefsPath = @"/var/mobile/Library/Preferences/com.samuel.resolutionx.plist";
 
@@ -90,7 +92,25 @@ static BOOL RXEnabled(void) {
 
 %end
 
+static void RXRestartCallback(CFNotificationCenterRef center,
+                                void *observer,
+                                CFStringRef name,
+                                const void *object,
+                                CFDictionaryRef userInfo) {
+    // SpringBoard exits and launchd immediately starts it again.
+    exit(0);
+}
+
 %ctor {
     if (![[NSBundle mainBundle].bundleIdentifier isEqualToString:@"com.apple.springboard"])
         return;
+
+    CFNotificationCenterAddObserver(
+        CFNotificationCenterGetDarwinNotifyCenter(),
+        NULL,
+        RXRestartCallback,
+        CFSTR("com.samuel.resolutionx.restart"),
+        NULL,
+        CFNotificationSuspensionBehaviorDeliverImmediately
+    );
 }

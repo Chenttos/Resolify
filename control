@@ -1,7 +1,7 @@
 Package: com.samuel.resolutionx
 Name: ResolutionX
 Version: 1.0.0
-Architecture: iphoneos-arm
+Architecture: iphoneos-arm64
 Description: Resolution/layout presets and iPhone X-style dock for iPhone 8 Plus on iOS 16.
 Maintainer: Samuel
 Author: Samuel
