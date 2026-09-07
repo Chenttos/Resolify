@@ -1,8 +1,9 @@
 #import "RXRootListController.h"
 #import <Preferences/PSSpecifier.h>
 #import <UIKit/UIKit.h>
+#import <notify.h>
 
-static NSString * const RXPrefsPath = @"/var/mobile/Library/Preferences/com.samuel.resolutionx.plist";
+static NSString * const RXPrefsDomain = @"com.samuel.resolutionx";
 
 @implementation RXRootListController
 
@@ -14,12 +15,11 @@ static NSString * const RXPrefsPath = @"/var/mobile/Library/Preferences/com.samu
 }
 
 - (void)apply {
-    // Save through PreferencesLoader-compatible defaults.
-    CFPreferencesAppSynchronize(CFSTR("com.samuel.resolutionx"));
+    CFPreferencesAppSynchronize((CFStringRef)RXPrefsDomain);
 
     UIAlertController *alert =
         [UIAlertController alertControllerWithTitle:@"ResolutionX"
-                                            message:@"Respring is required to apply the new display layout."
+                                            message:@"SpringBoard will restart to apply the new layout."
                                      preferredStyle:UIAlertControllerStyleAlert];
 
     [alert addAction:[UIAlertAction actionWithTitle:@"Cancel"
@@ -28,15 +28,8 @@ static NSString * const RXPrefsPath = @"/var/mobile/Library/Preferences/com.samu
 
     [alert addAction:[UIAlertAction actionWithTitle:@"Respring"
                                               style:UIAlertActionStyleDestructive
-                                            handler:^(UIAlertAction *a) {
-        pid_t pid = 0;
-        int (*SBRestart)(pid_t) = (int (*)(pid_t))dlsym(RTLD_DEFAULT, "SBRestart");
-        if (SBRestart) {
-            SBRestart(pid);
-            return;
-        }
-
-        system("killall SpringBoard");
+                                            handler:^(UIAlertAction *action) {
+        notify_post("com.samuel.resolutionx.restart");
     }]];
 
     [self presentViewController:alert animated:YES completion:nil];
