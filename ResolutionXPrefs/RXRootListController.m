@@ -1,9 +1,9 @@
 #import "RXRootListController.h"
 #import <Preferences/PSSpecifier.h>
 #import <UIKit/UIKit.h>
-#import <notify.h>
+#import <CoreFoundation/CoreFoundation.h>
 
-static NSString * const RXPrefsDomain = @"com.samuel.resolutionx";
+static NSString * const RXRespringNotification = @"com.samuel.resolutionx/respring";
 
 @implementation RXRootListController
 
@@ -15,24 +15,15 @@ static NSString * const RXPrefsDomain = @"com.samuel.resolutionx";
 }
 
 - (void)apply {
-    CFPreferencesAppSynchronize((CFStringRef)RXPrefsDomain);
+    CFPreferencesAppSynchronize(CFSTR("com.samuel.resolutionx"));
 
-    UIAlertController *alert =
-        [UIAlertController alertControllerWithTitle:@"ResolutionX"
-                                            message:@"SpringBoard will restart to apply the new layout."
-                                     preferredStyle:UIAlertControllerStyleAlert];
-
-    [alert addAction:[UIAlertAction actionWithTitle:@"Cancel"
-                                              style:UIAlertActionStyleCancel
-                                            handler:nil]];
-
-    [alert addAction:[UIAlertAction actionWithTitle:@"Respring"
-                                              style:UIAlertActionStyleDestructive
-                                            handler:^(UIAlertAction *action) {
-        notify_post("com.samuel.resolutionx.restart");
-    }]];
-
-    [self presentViewController:alert animated:YES completion:nil];
+    CFNotificationCenterPostNotification(
+        CFNotificationCenterGetDarwinNotifyCenter(),
+        (__bridge CFStringRef)RXRespringNotification,
+        NULL,
+        NULL,
+        true
+    );
 }
 
 @end
